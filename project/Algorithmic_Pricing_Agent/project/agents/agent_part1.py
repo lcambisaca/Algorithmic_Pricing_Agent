@@ -33,22 +33,23 @@ class Agent(object):
             os.path.join(helper_folder, "purchase_model.pkl"), "rb"
         ) as file:
             self.trained_model = pickle.load(file)
-
+            
+        self.price_grid = np.linspace(0, 500, 101)  # Baseline grid.
         # Rows = historical customers; columns = candidate prices.
-        with open(
-            os.path.join(helper_folder, "historical_predictions.pkl"), "rb"
-        ) as file:
-            self.historical_predictions = np.asarray(
-                pickle.load(file), dtype=float
-            )
+        # with open(
+        #     os.path.join(helper_folder, "historical_predictions.pkl"), "rb"
+        # ) as file:
+        #     self.historical_predictions = np.asarray(
+        #         pickle.load(file), dtype=float
+        #     )
         
-        # Initial future-revenue table.
-        self.V = self.build_value_table(
-            self.price_grid,
-            self.historical_predictions,
-            self.inventory_replenish,
-            self.max_inventory,
-        )
+        # # Initial future-revenue table.
+        # self.V = self.build_value_table(
+        #     self.price_grid,
+        #     self.historical_predictions,
+        #     self.inventory_replenish,
+        #     self.max_inventory,
+        # )
 
         # New customer predictions collected during the current cycle.
         self.pending_predictions = []
