@@ -24,35 +24,20 @@ class Agent(object):
         self.remaining_inventory = params['inventory_limit']
         self.inventory_replenish = params['inventory_replenish']
 
-        helper_folder = os.path.join(
-            os.path.dirname(__file__), "helper_files_here"
-        )
+        self.filename = os.path.join(os.path.dirname(__file__), 'helper_files_here', 'purchase_model1.pkl') 
+        #ALSO Note we need same model for purchase so we need to rerun ipyb folder if we ever change model, 
+        # and we need to make sure the model is trained on the same price grid as the one used in this agent.
+        value_path = os.path.join(os.path.dirname(__file__),'helper_files_here','value_table.pkl')
 
-        # Load the trained purchase-probability model.
-        with open(
-            os.path.join(helper_folder, "purchase_model.pkl"), "rb"
-        ) as file:
+
+        with open(self.filename, 'rb') as file:
             self.trained_model = pickle.load(file)
-            
-        self.price_grid = np.linspace(0, 500, 101)  # Baseline grid.
-        # Rows = historical customers; columns = candidate prices.
-        # with open(
-        #     os.path.join(helper_folder, "historical_predictions.pkl"), "rb"
-        # ) as file:
-        #     self.historical_predictions = np.asarray(
-        #         pickle.load(file), dtype=float
-        #     )
-        
-        # # Initial future-revenue table.
-        # self.V = self.build_value_table(
-        #     self.price_grid,
-        #     self.historical_predictions,
-        #     self.inventory_replenish,
-        #     self.max_inventory,
-        # )
 
-        # New customer predictions collected during the current cycle.
-        self.pending_predictions = []
+        with open(value_path, 'rb') as file:
+            self.V = pickle.load(file)
+        
+        self.price_grid = np.linspace(0, 500, 101)  
+        # Baseline grid. #BEWARE TO CHNAGE THIS IN PART 2, AS IT WILL AFFECT THE VALUE TABLE. WE WILL MEED TO REBUILD THE VALUE TABLE IF WE CHANGE THE PRICE GRID.
 
     @staticmethod
     def get_single_2dstep_revenue_maximizing_price_and_revenue(Vtplus1_k_minus_1, Vtplus1_k, price_options, demand_predictions):
@@ -64,25 +49,7 @@ class Agent(object):
 
         return float(p[idx]), float(expected_revenue[idx])
 
-    @staticmethod
-    def build_value_table(prices, demand_predictions, T, K):
-        """
-        Build V using historical customers.
-        demand_predictions shape: (number_of_customers, number_of_prices)
-        V[t, k]: expected future revenue with t rounds elapsed and k items.
-        """
-        V = np.zeros((T + 1, K + 1))
 
-        for t in range(T - 1, -1, -1):
-            for k in range(1, K + 1):
-                expected_revenue = (demand_predictions * (prices + V[t + 1, k - 1]) + (1 - demand_predictions) * V[t + 1, k])   
-                # Gets expected rev for each customer and each price in price grid
-                # Best price for EACH customer, then average their values.
-                best_customer_values = np.max(expected_revenue, axis=1)
-                V[t, k] = np.mean(best_customer_values)
-        return V
-
-    
     def _process_last_sale(
             self, 
             last_sale,
@@ -144,5 +111,5 @@ class Agent(object):
                                         columns=['Covariate1', 'Covariate2', 'Covariate3'])
         features['price_item'] = self.price_grid
         probability = np.clip(self.trained_model.predict(features), 0, 1)
-      #  price, _ = get_single_2dstep_revenue_maximizing_price_and_revenue(V[t + 1, k - 1], V[t + 1, k],self.price_grid, probability)
-        return float(2)
+        price, _ = self.get_single_2dstep_revenue_maximizing_price_and_revenue(self.V[t + 1, k - 1], self.V[t + 1, k],self.price_grid,probability)
+        return price
